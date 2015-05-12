@@ -1,6 +1,6 @@
 #####################################################################
 # project: HAR
-# script ver.: 1
+# script ver.: 2 (+pca)
 # author: khmelkoff@gmail.com
 # date: 01/05/2015
 #####################################################################
@@ -206,5 +206,54 @@ print(tend-tstart)
 prediction <- predict(forest_igr, newdata=test_data)
 cm <- confusionMatrix(prediction, test_data$Activity)
 print(cm)
+
+## PCA ##############################################################
+
+pca_mod <- preProcess(train_data[,-1],
+                      method="pca",
+                      thresh = 0.95)
+
+summary(pca_mod)
+
+pca_train_data <- predict(pca_mod, newdata=train_data[,-1])
+dim(pca_train_data)
+# [1] 7352  102
+pca_train_data$Activity <- train_data$Activity
+pca_test_data <- predict(pca_mod, newdata=test_data[,-1])
+pca_test_data$Activity <- test_data$Activity
+
+## RF with pca data #######################################
+fitControl <- trainControl(method="cv", number=5)
+set.seed(123)
+tstart <- Sys.time()
+forest_pca <- train(Activity~., data=pca_train_data,
+                    method="rf", do.trace=10, ntree=100,
+                    trControl = fitControl)
+tend <- Sys.time()
+print(tend-tstart)
+
+## predict and control Accuracy
+prediction <- predict(forest_pca, newdata=pca_test_data)
+cm <- confusionMatrix(prediction, test_data$Activity)
+print(cm)
+
+# Accuracy : 0.8734
+
+## SVM with pca data ######################################
+fitControl <- trainControl(method="cv", number=5)
+set.seed(123)
+tstart <- Sys.time()
+svm_pca <- train(Activity~., data=pca_train_data,
+                    method="svmRadial",
+                    trControl = fitControl)
+tend <- Sys.time()
+print(tend-tstart)
+
+## predict and control Accuracy
+prediction <- predict(svm_pca, newdata=pca_test_data)
+cm <- confusionMatrix(prediction, test_data$Activity)
+print(cm)
+
+# Accuracy : 0.9386
 
 
